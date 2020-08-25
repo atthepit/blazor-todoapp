@@ -1,0 +1,73 @@
+﻿@page "/"
+
+@using TodoApp.Client.Components;
+@using TodoApp.Shared;
+
+@inject HttpClient Http
+
+@if (Todos == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <TodoList Todos="@Todos" OnTodoSelected="HandleTodoSelected" OnTodoRemove="HandleTodoRemove" />
+    <TodoForm Todo="@SelectedTodo" OnSubmit="HandleTodoSubmit" OnCancel="HandleEditCancel" />
+}
+
+@code {
+    private IList<Todo> Todos { get; set; }
+    private Todo SelectedTodo { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Http.GetFromJsonAsync<IEnumerable<Todo>>("api/Todos");
+        Todos = new List<Todo>(response);
+
+        SelectedTodo = new Todo();
+    }
+
+    private void HandleTodoSelected(Todo todo)
+    {
+        Console.WriteLine($"Todo selected: {todo.Id}");
+        SelectedTodo = Todo.Copy(todo);
+        StateHasChanged();
+    }
+
+    public async Task HandleTodoSubmit(Todo todo)
+    {
+        Console.WriteLine($"Todo submited: {todo.Id}");
+
+        var existingTodo = Todos.FirstOrDefault(t => t.Id == todo.Id);
+        if (existingTodo == null)
+        {
+            await Http.PostAsJsonAsync<Todo>("api/Todos", todo);
+            Todos.Add(todo);
+        }
+        else
+        {
+            await Http.PutAsJsonAsync<Todo>($"api/Todos/{todo.Id}", todo);
+            Todo.Copy(existingTodo, todo);
+        }
+
+        SelectedTodo = new Todo();
+        StateHasChanged();
+    }
+
+    public void HandleEditCancel()
+    {
+        SelectedTodo = new Todo();
+        StateHasChanged();
+    }
+
+    private async Task HandleTodoRemove(Todo todo)
+    {
+        var t = Todos.FirstOrDefault(t => todo.Id == t.Id);
+        if (t != null)
+        {
+            await Http.DeleteAsync($"api/Todos/{todo.Id}");
+            Todos.Remove(t);
+            StateHasChanged();
+        }
+    }
+}
