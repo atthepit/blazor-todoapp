@@ -1,10 +1,12 @@
 ﻿@page "/"
 
+@using MediatR;
+
 @using TodoApp.Client.Components;
-@using TodoApp.Client.Services;
+@using TodoApp.Client.Features;
 @using TodoApp.Shared;
 
-@inject ITodosService todosSvc
+@inject IMediator Mediator
 
 @if (Todos == null)
 {
@@ -20,18 +22,22 @@ else
     private IList<Todo> Todos { get; set; }
     private Todo SelectedTodo { get; set; }
 
+    private async Task FetchTodos()
+    {
+        var response = await Mediator.Send(new GetTodosRequest());
+        Todos = response.Todos.ToList();
+    }
+
     protected override async Task OnInitializedAsync()
     {
-        var response = await todosSvc.GetAllAsync();
-        Todos = response.ToList();
-
+        await FetchTodos();
         SelectedTodo = new Todo();
     }
 
     private void HandleTodoSelected(Todo todo)
     {
         Console.WriteLine($"Todo selected: {todo.Id}");
-        SelectedTodo = Todo.Copy(todo);
+        SelectedTodo = todo;
         StateHasChanged();
     }
 
@@ -39,18 +45,12 @@ else
     {
         Console.WriteLine($"Todo submited: {todo.Id}");
 
-        var existingTodo = Todos.FirstOrDefault(t => t.Id == todo.Id);
-        if (existingTodo == null)
-        {
-            await todosSvc.AddAsync(todo);
-            Todos.Add(todo);
-        }
+        if (todo.Id == Guid.Empty)
+            await Mediator.Send(new CreateTodoRequest(todo.Text, todo.Done));
         else
-        {
-            await todosSvc.UpdateAsync(todo);
-            Todo.Copy(existingTodo, todo);
-        }
+            await Mediator.Send(new UpdateTodoRequest(todo.Id, todo.Text, todo.Done));
 
+        await FetchTodos();
         SelectedTodo = new Todo();
         StateHasChanged();
     }
@@ -63,12 +63,8 @@ else
 
     private async Task HandleTodoRemove(Todo todo)
     {
-        var t = Todos.FirstOrDefault(t => todo.Id == t.Id);
-        if (t != null)
-        {
-            await todosSvc.DeleteAsync(todo);
-            Todos.Remove(t);
-            StateHasChanged();
-        }
+        await Mediator.Send(new DeleteTodoRequest(todo));
+        await FetchTodos();
+        StateHasChanged();
     }
 }

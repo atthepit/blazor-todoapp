@@ -43,6 +43,7 @@ namespace TodoApp.Server.Features
         {
             var todo = new Todo()
             {
+                Id = Guid.NewGuid(),
                 Text = text,
                 Done = done
             };

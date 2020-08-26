@@ -15,9 +15,13 @@ namespace TodoApp.Shared
         [DefaultValue(false)]
         public bool Done { get; set; }
 
-        public Todo()
+        public Todo() { }
+
+        public Todo(string text, bool done)
         {
             Id = Guid.NewGuid();
+            Text = text;
+            Done = done;
         }
 
         public static Todo Copy(Todo todo)
