@@ -1,9 +1,10 @@
 ﻿@page "/"
 
 @using TodoApp.Client.Components;
+@using TodoApp.Client.Services;
 @using TodoApp.Shared;
 
-@inject HttpClient Http
+@inject ITodosService todosSvc
 
 @if (Todos == null)
 {
@@ -21,8 +22,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var response = await Http.GetFromJsonAsync<IEnumerable<Todo>>("api/Todos");
-        Todos = new List<Todo>(response);
+        var response = await todosSvc.GetAllAsync();
+        Todos = response.ToList();
 
         SelectedTodo = new Todo();
     }
@@ -41,12 +42,12 @@ else
         var existingTodo = Todos.FirstOrDefault(t => t.Id == todo.Id);
         if (existingTodo == null)
         {
-            await Http.PostAsJsonAsync<Todo>("api/Todos", todo);
+            await todosSvc.AddAsync(todo);
             Todos.Add(todo);
         }
         else
         {
-            await Http.PutAsJsonAsync<Todo>($"api/Todos/{todo.Id}", todo);
+            await todosSvc.UpdateAsync(todo);
             Todo.Copy(existingTodo, todo);
         }
 
@@ -65,7 +66,7 @@ else
         var t = Todos.FirstOrDefault(t => todo.Id == t.Id);
         if (t != null)
         {
-            await Http.DeleteAsync($"api/Todos/{todo.Id}");
+            await todosSvc.DeleteAsync(todo);
             Todos.Remove(t);
             StateHasChanged();
         }

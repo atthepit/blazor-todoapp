@@ -8,6 +8,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
+using TodoApp.Client.Services;
+
 namespace TodoApp.Client
 {
     public class Program
@@ -18,6 +20,7 @@ namespace TodoApp.Client
             builder.RootComponents.Add<App>("app");
 
             builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+            builder.Services.AddScoped<ITodosService, TodosService>();
 
             await builder.Build().RunAsync();
         }
